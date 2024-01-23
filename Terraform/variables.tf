@@ -25,7 +25,7 @@ variable "instance_type" {
 variable "key_name" {
   description = "The name of the SSH key pair."
   type        = string
-  // No default provided; should be specified in terraform.tfvars or at runtime
+  default = "testinstancekey"
 }
 
 variable "sonarqube_ami" {

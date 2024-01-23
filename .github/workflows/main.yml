@@ -83,3 +83,22 @@ jobs:
             docker stop myapp || true
             docker rm myapp || true
             docker run -d --name myapp -p 80:80 ${{ env.image }}
+
+  cleanup:
+    runs-on: ubuntu-latest
+    if: ${{ always() && needs.build-and-push.result == 'failure' || needs.deploy.result == 'failure' }}
+    needs: [build-and-push, deploy]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 0.14.9
+
+      - name: Terraform Init
+        run: terraform init ./Terraform
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve ./Terraform            
