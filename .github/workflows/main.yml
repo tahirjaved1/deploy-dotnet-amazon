@@ -42,7 +42,7 @@ jobs:
       - name: Set Terraform Outputs to Env Vars
         id: set-env
         run: |
-          EC2_NAME=$(terraform output -raw deployment_instance_name) >> $GITHUB_ENV
+          EC2_NAME=$(terraform output -raw deployment_instance_public_ip) >> $GITHUB_ENV
           PRIVATE_KEY=$(terraform output -raw private_key) >> $GITHUB_ENV
 
       - name: Login to Amazon ECR
@@ -57,14 +57,14 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
-      - name: Terraform Destroy
-        if: failure()
-        run: terraform destroy -auto-approve ./Terraform
+      # - name: Terraform Destroy
+      #   if: failure()
+      #   run: terraform destroy -auto-approve ./Terraform
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.EC2_HOST }} # or get this from Terraform output similarly
+          host: ${{ env.EC2_NAME }}
           username: ubuntu
           key: ${{ env.PRIVATE_KEY }}
           script: |
@@ -83,6 +83,10 @@ jobs:
             docker stop myapp || true
             docker rm myapp || true
             docker run -d --name myapp -p 80:80 ${{ env.image }}
+
+      - name: Terraform Destroy
+        if: always()
+        run: terraform destroy -auto-approve ./Terraform
 
   # deploy:
   #   runs-on: ubuntu-latest
