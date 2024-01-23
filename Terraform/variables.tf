@@ -25,7 +25,7 @@ variable "instance_type" {
 variable "key_name" {
   description = "The name of the SSH key pair."
   type        = string
-  default = "testinstancekey"
+  default = "testinstance"
 }
 
 variable "sonarqube_ami" {
