@@ -23,14 +23,14 @@ jobs:
           terraform_version: 0.14.9
 
       - name: Terraform Init
-        run: terraform init ../../Terraform
+        run: terraform init ./Terraform
 
       - name: Terraform Plan
-        run: terraform plan -out=tfplan ../../Terraform
+        run: terraform plan -out=tfplan ./Terraform
 
       - name: Terraform Apply
         if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: terraform apply -auto-approve ../../Terraform 
+        run: terraform apply -auto-approve ./Terraform 
 
       - name: Set Terraform Outputs to Env Vars
         id: set-env
