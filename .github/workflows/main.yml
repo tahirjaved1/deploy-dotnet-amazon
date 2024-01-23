@@ -44,9 +44,9 @@ jobs:
         run: |
           EC2_IP=$(terraform output -raw deployment_instance_public_ip)
           PRIVATE_KEY=$(terraform output -raw private_key)
-          echo "EC2_NAME=$EC2_NAME" >> $GITHUB_ENV
+          echo "EC2_IP=$EC2_IP" >> $GITHUB_ENV
           echo "PRIVATE_KEY=$PRIVATE_KEY" >> $GITHUB_ENV
-          echo "EC2_NAME=$EC2_NAME"
+          echo "EC2_IP=$EC2_IP"
           echo "PRIVATE_KEY=$PRIVATE_KEY"
 
       - name: Login to Amazon ECR
