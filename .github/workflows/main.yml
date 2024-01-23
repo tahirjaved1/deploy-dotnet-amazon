@@ -6,6 +6,10 @@ on:
       - master
   workflow_dispatch:
 
+env:
+  AWS_REGION: us-east-1  # Change to your desired AWS region
+  ECR_REPOSITORY: applicationdeploy  # Replace with your ECR repository name
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -18,21 +22,20 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1  # Change to your desired AWS region
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, tag, and push Django image to Amazon ECR
-        id: django-build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
+      - name: Build, tag, and push image to Amazon ECR
         run: |
+          IMAGE_TAG=$GITHUB_SHA
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f BookManager/Dockerfile BookManager/
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV        
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+
 
   # deploy:
   #   runs-on: ubuntu-latest
