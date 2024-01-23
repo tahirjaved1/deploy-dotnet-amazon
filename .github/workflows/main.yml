@@ -42,8 +42,8 @@ jobs:
       - name: Set Terraform Outputs to Env Vars
         id: set-env
         run: |
-          EC2_NAME=$(terraform output -raw deployment_instance_public_ip) >> $GITHUB_ENV
-          PRIVATE_KEY=$(terraform output -raw private_key) >> $GITHUB_ENV
+          echo "EC2_NAME=$(terraform output -raw deployment_instance_public_ip)" >> $GITHUB_ENV
+          echo "PRIVATE_KEY=$(terraform output -raw private_key)" >> $GITHUB_ENV
 
       - name: Login to Amazon ECR
         id: login-ecr
