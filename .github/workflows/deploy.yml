@@ -8,7 +8,7 @@ on:
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+  ECR_REPOSITORY: deployapplication
 
 jobs:
   build_and_push:
@@ -64,7 +64,6 @@ jobs:
         run: |
           IMAGE_TAG=$GITHUB_SHA
           ECR_REGISTRY=${{ steps.login_ecr.outputs.registry }}
-          ECR_REPOSITORY=${{ env.ECR_REPOSITORY }} 
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f BookManager/Dockerfile BookManager/
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
@@ -154,9 +153,62 @@ jobs:
 
           # SSH into the EC2 instance and execute commands
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$nexus_public_ip_ssh << EOF 
-            # Update and install required packages
-            sudo apt-get update -y
-            sudo apt-get install -y docker.io awscli
+            # Install Docker
+            sudo apt update
+            sudo apt install docker.io -y
+
+            # Start and enable Docker service
+            sudo systemctl start docker
+            sudo systemctl enable docker
+
+            # Add the current user to the docker group to run Docker commands without sudo
+            sudo usermod -aG docker $USER
+            sudo chown $USER:docker /var/run/docker.sock
+
+            # Install Docker Compose
+            sudo apt install docker-compose -y
+
+            # Create a Docker Compose file for Nexus
+            echo "version: '3'
+
+            services:
+              nexus:
+                image: sonatype/nexus3:latest
+                ports:
+                  - \"8081:8081\"
+                networks:
+                  - nexus-network
+                volumes:
+                  - ./nexus-data:/nexus-data
+                restart: always  # Ensure the container restarts automatically
+                environment:
+                  - MAX_HEAP=2048m  # Set maximum heap size
+                command: bash -c \"export MAX_HEAP=\$MAX_HEAP && /opt/sonatype/start-nexus-repository-manager.sh\"
+                ulimits:
+                  memlock:
+                    soft: -1
+                    hard: -1
+                mem_limit: 4096m  # Set the container memory limit to 4096 MB
+
+            networks:
+              nexus-network:
+                driver: bridge" > docker-compose.yml
+
+            # Create a volume for Nexus data
+            mkdir -p nexus-data
+
+            # Set proper permissions for the Nexus data directory
+            sudo chown -R 200:200 nexus-data
+
+            # Run Docker Compose to start Nexus
+            docker-compose up -d
+
+            # Open port 8081 in the firewall
+            sudo ufw allow 8081/tcp
+
+            # Display Docker version and running containers
+            docker version
+            docker ps -a
           EOF
           nexus_public_ip=$(terraform -chdir="./Terraform" output -raw nexus_public_ip)
           echo $nexus_public_ip
