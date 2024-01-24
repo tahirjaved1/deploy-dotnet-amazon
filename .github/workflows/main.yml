@@ -80,8 +80,8 @@ jobs:
       - name: 'Set vars'
         id: vars
         run: |
-          printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform " output -raw deployment_instance_public_ip) >> "$GITHUB_OUTPUT"
-          printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform " output -raw private_key) >> "$GITHUB_OUTPUT"               
+          printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> "$GITHUB_OUTPUT"
+          printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) >> "$GITHUB_OUTPUT"
 
       - name: Login to Amazon ECR
         id: login-ecr
