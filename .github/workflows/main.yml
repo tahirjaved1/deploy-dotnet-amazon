@@ -67,7 +67,6 @@ jobs:
       #   run: terraform destroy -auto-approve ./Terraform
 
       - name: SSH VM
-        if: failure()
         run: |
             ssh -i ${{ secrets.SSH_PRIVATE_KEY }} ubuntu@ec2-18-206-169-89.compute-1.amazonaws.com
             # Login to Amazon ECR to enable pulling Docker images
