@@ -44,7 +44,7 @@ output "sonarqube_public_ip" {
 }
 
 output "sonarqube_public_ip_ssh" {
-  value = "aws_instance.sonarqube_instance.public_ip"
+  value = aws_instance.sonarqube_instance.public_ip
   description = "Public IP for SonarQube instance"
 }
 
