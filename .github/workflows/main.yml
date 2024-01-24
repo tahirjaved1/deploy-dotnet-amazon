@@ -80,7 +80,8 @@ jobs:
           EC2_IP=$(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) 
           AWS_REGION=${{ env.AWS_REGION }}
           ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          IMAGE=$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG"
+          IMAGE_TAG=$GITHUB_SHA
+          IMAGE="$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG"
 
           # SSH into the EC2 instance and execute commands
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_IP << EOF
@@ -107,7 +108,8 @@ jobs:
             sudo docker rm myapp || true
             sudo docker run -d --name myapp -p 80:80 $IMAGE
           EOF
-        shell: /usr/bin/bash -e {0}       
+        shell: /usr/bin/bash -e {0}
+
 
       # - name: Terraform Destroy
       #   if: failure()
