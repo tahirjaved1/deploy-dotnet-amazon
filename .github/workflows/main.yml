@@ -86,6 +86,9 @@ jobs:
           terraform -chdir="./Terraform" output -raw private_key > key.pem
           chmod 600 key.pem
           cat key.pem
+
+          EC2_IP=$(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip)
+          echo $EC2_IP
       
           # Debug: Print the EC2_IP
           echo $EC2_IP
