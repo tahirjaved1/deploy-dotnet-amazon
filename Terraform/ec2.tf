@@ -44,40 +44,61 @@ resource "aws_instance" "sonarqube_instance" {
     Name = "SonarQube"
   }
 
-    # user_data = <<-EOF
-    #         #!/bin/bash
+    user_data = <<-EOF
+            # Install Docker
+            sudo apt update
+            sudo apt install docker.io -y
 
-    #         # Update and install necessary packages
-    #         sudo apt update
-    #         sudo apt install -y openjdk-11-jdk unzip
+            # Start and enable Docker service
+            sudo systemctl start docker
+            sudo systemctl enable docker
 
-    #         # Download SonarQube
-    #         wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-8.9.0.43852.zip -O sonarqube.zip
+            # Add the current user to the docker group to run Docker commands without sudo
+            sudo usermod -aG docker $USER
+            sudo chown $USER:docker /var/run/docker.sock
 
-    #         # Unzip and move SonarQube
-    #         sudo unzip sonarqube.zip -d /opt
-    #         sudo mv /opt/sonarqube-8.9.0.43852 /opt/sonarqube
+            # Install Docker Compose
+            sudo apt install docker-compose -y
 
-    #         # Check if group/user already exists, if not, create them
-    #         if ! getent group sonar > /dev/null; then
-    #           sudo groupadd sonar
-    #         fi
-    #         if ! getent passwd sonar > /dev/null; then
-    #           sudo useradd -c "SonarQube" -d /opt/sonarqube -g sonar sonar
-    #         fi
+            # Save the Docker Compose content to a file
+            echo "version: '3'
 
-    #         # Change ownership of the SonarQube directory
-    #         sudo chown sonar:sonar /opt/sonarqube -R
+            services:
+              sonarqube:
+                image: sonarqube:latest
+                ports:
+                  - \"9000:9000\"
+                networks:
+                  - sonar-network
+                environment:
+                  - SONARQUBE_JDBC_URL=jdbc:postgresql://sonarqube-db:5432/sonarqube
+                  - SONARQUBE_JDBC_USERNAME=sonaruser
+                  - SONARQUBE_JDBC_PASSWORD=yourpassword
+                depends_on:
+                  - sonarqube-db
 
-    #         # Configure SonarQube
-    #         echo "sonar.jdbc.username=sonar" | sudo tee -a /opt/sonarqube/conf/sonar.properties
-    #         echo "sonar.jdbc.password=sonar" | sudo tee -a /opt/sonarqube/conf/sonar.properties
-    #         echo "sonar.jdbc.url=jdbc:h2:tcp://localhost:9092/sonar" | sudo tee -a /opt/sonarqube/conf/sonar.properties
+              sonarqube-db:
+                image: postgres:latest
+                networks:
+                  - sonar-network
+                environment:
+                  - POSTGRES_USER=sonaruser
+                  - POSTGRES_PASSWORD=yourpassword
 
-    #         # Start SonarQube
-    #         sudo -u sonar /opt/sonarqube/bin/linux-x86-64/sonar.sh start
-    # EOF
+            networks:
+              sonar-network:
+                driver: bridge" > docker-compose.yml
 
+            # Run Docker Compose
+            docker-compose up -d
+
+            # Open port 9000 in the firewall
+            sudo ufw allow 9000/tcp
+
+            # Display Docker version and running containers
+            docker version
+            docker ps -a
+    EOF
 }
 
 resource "aws_instance" "nexus_instance" {

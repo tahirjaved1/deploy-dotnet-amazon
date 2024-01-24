@@ -87,6 +87,8 @@ jobs:
         id: vars
         run: |
           printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> $GITHUB_ENV
+          printf "sonarqube_public_ip=%s\n" $(terraform -chdir="./Terraform" output -raw sonarqube_public_ip) >> $GITHUB_ENV
+          printf "nexus_public_ip=%s\n" $(terraform -chdir="./Terraform" output -raw nexus_public_ip) >> $GITHUB_ENV
           printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) >> $GITHUB_ENV
 
       - name: Login to Amazon ECR
@@ -107,7 +109,7 @@ jobs:
 
       - name: Set permissions for private key
         run: |
-          echo "${{ steps.vars.outputs.PRIVATE_KEY }}" > key.pem
+          printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) > key.pem
           chmod 600 key.pem
 
       - name: Deploy to EC2
