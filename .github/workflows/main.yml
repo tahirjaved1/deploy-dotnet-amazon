@@ -78,7 +78,7 @@ jobs:
       - name: 'Set vars for private key and SSH into EC2 instance'
         run: |
           # Set environment variables
-          printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> $GITHUB_ENV
+          # printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> $GITHUB_ENV
           printf "sonarqube_public_ip=%s\n" $(terraform -chdir="./Terraform" output -raw sonarqube_public_ip) >> $GITHUB_ENV
           printf "nexus_public_ip=%s\n" $(terraform -chdir="./Terraform" output -raw nexus_public_ip) >> $GITHUB_ENV
 
@@ -87,27 +87,26 @@ jobs:
           chmod 600 key.pem
           cat key.pem
 
-          EC2_IP=$(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip)
-          echo $EC2_IP
-      
+          EC2_IP=$(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) 
+               
           # Debug: Print the EC2_IP
           echo $EC2_IP
-          # # SSH into the EC2 instance and execute commands
-          # ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${EC2_IP} << 'EOF'
-          #   # Commands to execute on the EC2 instance
-          #   sudo apt-get update -y
-          #   sudo apt-get install -y docker.io
-          #   sudo systemctl start docker
-          #   sudo systemctl enable docker
-          #   sudo usermod -aG docker $USER
+          # SSH into the EC2 instance and execute commands
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_IP << 'EOF'
+            # Commands to execute on the EC2 instance
+            sudo apt-get update -y
+            sudo apt-get install -y docker.io
+            sudo systemctl start docker
+            sudo systemctl enable docker
+            sudo usermod -aG docker $USER
 
-          #   # Docker and AWS commands
-          #   $(aws ecr get-login-password --region ${{ env.AWS_REGION }}) | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
-          #   docker pull ${{ env.image }}
-          #   # docker stop myapp || true
-          #   # docker rm myapp || true
-          #   docker run -d --name myapp -p 80:80 ${{ env.image }}
-          # EOF
+            # Docker and AWS commands
+            $(aws ecr get-login-password --region ${{ env.AWS_REGION }}) | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+            docker pull ${{ env.image }}
+            # docker stop myapp || true
+            # docker rm myapp || true
+            docker run -d --name myapp -p 80:80 ${{ env.image }}
+          EOF
         shell: /usr/bin/bash -e {0}       
 
       # - name: Terraform Destroy
