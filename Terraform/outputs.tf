@@ -76,6 +76,12 @@ output "deployment_instance_public_ip" {
   description = "Public IP for Deployment instance"
 }
 
+# Output the public IP URL for Deployment instance
+output "deployment_public_url" {
+  value = "http://${aws_instance.deployment_instance.public_ip}:8080/swagger/index.html"
+  description = "Public IP URL for Deployment"
+}
+
 # Output the name of the Deployment instance
 output "deployment_instance_name" {
   value = aws_instance.deployment_instance.tags.Name

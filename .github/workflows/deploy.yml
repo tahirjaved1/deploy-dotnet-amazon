@@ -132,6 +132,10 @@ jobs:
             # Run Docker container for .NET application
             sudo docker run -d --name myapp -p 8080:80 -e MONGODBCONFIG:CONNECTIONSTRING='mongodb://mongodb:27017' -e ASPNETCORE_ENVIRONMENT=Development $IMAGE
           EOF
-          deployment_instance_public_ip=$(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip)
-          echo $deployment_instance_public_ip
+        shell: /usr/bin/bash -e {0}
+
+      - name: 'Show Application URL'
+        run: |
+          deployment_public_url=$(terraform -chdir="./Terraform" output -raw deployment_public_url)
+          echo $deployment_public_url
         shell: /usr/bin/bash -e {0}

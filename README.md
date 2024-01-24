@@ -1,11 +1,16 @@
-# Deploy ASP.NET Core Web API to Amazon ECS
+# Deploy ASP.NET Core Web API to Amazon
 
-## Topics Covered:
+## Prerequisites:
 
-- What is Amazon ECS?
-- ECS Workflow – In Short
-- Building a Simple ASP.NET Core Web API with MongoDB Integration
-- Docker File
-- Building Docker Image
-- Pushing Docker Image to Amazon ECR
-- Run into EC2
+- AWS Account
+- AWS Secret Key and Access Key
+- Create ECR and S3 Bucket
+- Put S3 bucket name in backend.tf and add regions
+
+
+## Create these Github actions Repository Secrets:
+
+    AWS_ACCESS_KEY_ID
+    AWS_REGION
+    AWS_SECRET_ACCESS_KEY
+
