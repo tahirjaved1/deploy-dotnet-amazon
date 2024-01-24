@@ -97,30 +97,31 @@ jobs:
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
             export AWS_REGION=$AWS_REGION
-            # Update and install required packages
-            # Install Docker
-            sudo apt update
-            sudo apt install docker.io -y
+              # Update and install required packages
+              # Install Docker
+              sudo apt update
+              sudo apt install docker.io -y
 
-            # Start and enable Docker service
-            sudo systemctl start docker
-            sudo systemctl enable docker
+              # Start and enable Docker service
+              sudo systemctl start docker
+              sudo systemctl enable docker
 
-            # Add the current user to the docker group to run Docker commands without sudo
-            sudo usermod -aG docker $USER
-            sudo chown $USER:docker /var/run/docker.sock
+              # Add the current user to the docker group to run Docker commands without sudo
+              sudo usermod -aG docker \$USER
+              sudo chown \$USER:docker /var/run/docker.sock
 
-            # Install Docker Compose
-            sudo apt install docker-compose -y
+              # Install Docker Compose
+              sudo apt install docker-compose -y
 
-            # Save the Docker Compose content to a file
-            echo "version: '3'
+              # Save the Docker Compose content to a file
+              cat << 'DOCKER_COMPOSE' > docker-compose.yml
+            version: '3'
 
             services:
               sonarqube:
                 image: sonarqube:latest
                 ports:
-                  - \"9000:9000\"
+                  - "9000:9000"
                 networks:
                   - sonar-network
                 environment:
@@ -140,18 +141,19 @@ jobs:
 
             networks:
               sonar-network:
-                driver: bridge" > docker-compose.yml
+                driver: bridge
+            DOCKER_COMPOSE
 
-            # Run Docker Compose
-            sudo docker-compose up -d
+              # Run Docker Compose
+              sudo docker-compose up -d
 
-            # Open port 9000 in the firewall
-            sudo ufw allow 9000/tcp
+              # Open port 9000 in the firewall
+              sudo ufw allow 9000/tcp
 
-            # Display Docker version and running containers
-            sudo docker version
-            sudo docker ps -a
-          EOF
+              # Display Docker version and running containers
+              sudo docker version
+              sudo docker ps -a
+            EOF
           sonarqube_public_ip=$(terraform -chdir="./Terraform" output -raw sonarqube_public_ip)
           echo $sonarqube_public_ip
         shell: /usr/bin/bash -e {0}
@@ -213,15 +215,16 @@ jobs:
             sudo chown -R 200:200 nexus-data
 
             # Run Docker Compose to start Nexus
-            docker-compose up -d
+            sudo docker-compose up -d
 
             # Open port 8081 in the firewall
             sudo ufw allow 8081/tcp
 
             # Display Docker version and running containers
-            docker version
-            docker ps -a
-          EOF
+            sudo docker version
+            sudo docker ps -a
+            EOF
+
           nexus_public_ip=$(terraform -chdir="./Terraform" output -raw nexus_public_ip)
           echo $nexus_public_ip
         shell: /usr/bin/bash -e {0}        
