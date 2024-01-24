@@ -85,12 +85,10 @@ jobs:
           # Output the private key to a file and set the correct permissions
           printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) > key.pem
           chmod 600 key.pem
+          cat key.pem
       
           # Debug: Print the EC2_IP
-          echo "EC2 IP Address: ${EC2_IP}"
-          # Debug: Print the PRIVATE_KEY
-          echo "Key File: ${PRIVATE_KEY}"
-
+          echo $EC2_IP
           # # SSH into the EC2 instance and execute commands
           # ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${EC2_IP} << 'EOF'
           #   # Commands to execute on the EC2 instance
