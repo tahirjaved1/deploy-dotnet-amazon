@@ -73,7 +73,7 @@ jobs:
           chmod 600 key.pem
       - name: Pull Docker image
         run: |
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@100.24.8.251 'sudo docker pull 070982173331.dkr.ecr.us-east-1.amazonaws.com/applicationdeploy:e40084f989cb8085bf0b35b110c3064c33a653e6'
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@13.51.196.220 'sudo docker pull 070982173331.dkr.ecr.us-east-1.amazonaws.com/applicationdeploy:e40084f989cb8085bf0b35b110c3064c33a653e6'
       # - name: Stop running container
       #   run: |
       #     ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@100.24.8.251 'sudo docker stop cddemo || true'
