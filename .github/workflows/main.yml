@@ -9,6 +9,7 @@ on:
 env:
   AWS_REGION: us-east-1  # Change to your desired AWS region
   ECR_REPOSITORY: applicationdeploy  # Replace with your ECR repository name
+  AWS_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
 jobs:
   build-and-push:
@@ -66,24 +67,39 @@ jobs:
       #   if: failure()
       #   run: terraform destroy -auto-approve ./Terraform
 
-      - name: SSH VM
+      - name: Set permissions for private key
         run: |
-            ssh -i ${{ secrets.SSH_PRIVATE_KEY }} ubuntu@ec2-18-206-169-89.compute-1.amazonaws.com
-            # Login to Amazon ECR to enable pulling Docker images
-            aws ecr get-login-password --region ${{ env.AWS_REGION }} | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+          echo "${{ env.AWS_PRIVATE_KEY }}" > key.pem
+          chmod 600 key.pem
+      - name: Pull Docker image
+        run: |
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@100.24.8.251 'sudo docker pull 070982173331.dkr.ecr.us-east-1.amazonaws.com/applicationdeploy:e40084f989cb8085bf0b35b110c3064c33a653e6'
+      # - name: Stop running container
+      #   run: |
+      #     ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@100.24.8.251 'sudo docker stop cddemo || true'
+      #     ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@100.24.8.251 'sudo docker rm cddemo || true'
+      # - name: Run new container
+      #   run: |
+      #     ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@your-ec2-instance-ip 'sudo docker run -d --name cddemo -p 80:3000 your-dockerhub-username/cddemo:latest'      
+
+      # - name: SSH VM
+      #   run: |
+      #       ssh -i ${{ secrets.SSH_PRIVATE_KEY }} ubuntu@ec2-18-206-169-89.compute-1.amazonaws.com
+      #       # Login to Amazon ECR to enable pulling Docker images
+      #       aws ecr get-login-password --region ${{ env.AWS_REGION }} | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
       
-            # Ensure Docker is installed and running on the EC2 instance
-            sudo apt-get update -y
-            sudo apt-get install -y docker.io
-            sudo systemctl start docker
-            sudo systemctl enable docker
-            sudo usermod -aG docker $USER
+      #       # Ensure Docker is installed and running on the EC2 instance
+      #       sudo apt-get update -y
+      #       sudo apt-get install -y docker.io
+      #       sudo systemctl start docker
+      #       sudo systemctl enable docker
+      #       sudo usermod -aG docker $USER
       
-            # Pull the latest Docker image and run it
-            docker pull ${{ env.image }}  # Pull the Docker image specified in the build-and-push job
-            docker stop myapp || true  # Stop the existing container if it's running
-            docker rm myapp || true  # Remove the container to allow a fresh start
-            docker run -d --name myapp -p 80:80 ${{ env.image }}  # Run the new container
+      #       # Pull the latest Docker image and run it
+      #       docker pull ${{ env.image }}  # Pull the Docker image specified in the build-and-push job
+      #       docker stop myapp || true  # Stop the existing container if it's running
+      #       docker rm myapp || true  # Remove the container to allow a fresh start
+      #       docker run -d --name myapp -p 80:80 ${{ env.image }}  # Run the new container
         
 
       # - name: Deploy to EC2
