@@ -78,10 +78,10 @@ jobs:
           terraform -chdir="./Terraform" output -raw private_key > key.pem
           chmod 600 key.pem
 
-          sonarqube_public_ip=$(terraform -chdir="./Terraform" output -raw sonarqube_public_ip) 
+          sonarqube_public_ip_ssh=$(terraform -chdir="./Terraform" output -raw sonarqube_public_ip_ssh) 
 
           # SSH into the EC2 instance and execute commands
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$sonarqube_public_ip << EOF
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$sonarqube_public_ip_ssh << EOF
             export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
             export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
             export AWS_REGION=$AWS_REGION          

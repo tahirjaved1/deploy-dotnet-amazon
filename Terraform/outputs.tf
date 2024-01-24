@@ -43,6 +43,11 @@ output "sonarqube_public_ip" {
   description = "Public IP URL for SonarQube instance"
 }
 
+output "sonarqube_public_ip_ssh" {
+  value = "aws_instance.sonarqube_instance.public_ip"
+  description = "Public IP for SonarQube instance"
+}
+
 output "nexus_public_ip" {
   value = "http://${aws_instance.nexus_instance.public_ip}:8081"
   description = "Public IP URL for Nexus instance"
