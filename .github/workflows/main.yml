@@ -86,20 +86,20 @@ jobs:
 
           # SSH into the EC2 instance and execute commands
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_IP << EOF
-            # Commands to execute on the EC2 instance
+            # Update and install required packages
             sudo apt-get update -y
-            sudo apt-get install -y docker.io
+            sudo apt-get install -y docker.io awscli
+
+            # Start and enable Docker
             sudo systemctl start docker
             sudo systemctl enable docker
-            sudo usermod -aG docker $USER
 
-            # Install AWS CLI
-            sudo apt-get install -y awscli
+            # Add the current user to Docker group
+            sudo usermod -aG docker \$USER
 
-            # Docker and AWS commands
             # Log into Docker registry non-interactively
-            aws_ecr_login=$(aws ecr get-login-password --region $AWS_REGION)
-            echo $aws_ecr_login | sudo docker login --username AWS --password-stdin $ECR_REGISTRY
+            aws_ecr_login=\$(aws ecr get-login-password --region $AWS_REGION)
+            echo \$aws_ecr_login | sudo docker login --username AWS --password-stdin $ECR_REGISTRY
 
             # Pull the Docker image
             sudo docker pull $IMAGE
