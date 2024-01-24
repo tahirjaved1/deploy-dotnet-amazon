@@ -9,8 +9,6 @@ on:
 env:
   AWS_REGION: eu-north-1  # Change to your desired AWS region
   ECR_REPOSITORY: deployapplication  # Replace with your ECR repository name
-  # AWS_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-  ECR_REGISTRY: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
 jobs:
   build-and-push:
@@ -82,7 +80,7 @@ jobs:
           EC2_IP=$(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) 
           AWS_REGION=${{ env.AWS_REGION }}
           ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          IMAGE=${{ env.image }}
+          IMAGE=$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG"
 
           # SSH into the EC2 instance and execute commands
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_IP << EOF
