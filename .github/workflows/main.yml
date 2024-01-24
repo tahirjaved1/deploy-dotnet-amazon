@@ -8,7 +8,7 @@ on:
 
 env:
   AWS_REGION: eu-north-1  # Change to your desired AWS region
-  ECR_REPOSITORY: applicationdeploy  # Replace with your ECR repository name
+  ECR_REPOSITORY: deployapplication  # Replace with your ECR repository name
   # AWS_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
 
 jobs:
