@@ -3,7 +3,7 @@ name: Build, Push, and Deploy
 on:
   push:
     branches:
-      - main
+      - master
   workflow_dispatch:
 
 env:
@@ -31,7 +31,7 @@ jobs:
 
       - name: Initialize Terraform
         id: tf_init
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/master'
         uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version: 1.4.6
@@ -40,7 +40,7 @@ jobs:
 
       - name: Plan Terraform
         id: tf_plan
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/master'
         uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version: 1.4.6
@@ -49,7 +49,7 @@ jobs:
 
       - name: Apply Terraform Changes
         id: tf_apply
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/master'
         uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version: 1.4.6
