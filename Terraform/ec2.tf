@@ -45,10 +45,13 @@ resource "aws_instance" "sonarqube_instance" {
   vpc_security_group_ids = [aws_security_group.allow_ssh.id]
   key_name               = aws_key_pair.generated_key.key_name
 
+  user_data = base64encode(file("${path.module}/scripts/sonar.sh"))
+
   tags = {
     Name = "SonarQube"
   }
 }
+
 
 # Create Nexus EC2 instance
 resource "aws_instance" "nexus_instance" {
@@ -58,10 +61,13 @@ resource "aws_instance" "nexus_instance" {
   vpc_security_group_ids = [aws_security_group.allow_ssh.id]
   key_name               = aws_key_pair.generated_key.key_name
 
+  user_data = base64encode(file("${path.module}/scripts/nexus.sh"))
+
   tags = {
     Name = "Nexus"
   }
 }
+
 
 # Create Deployment EC2 instance
 resource "aws_instance" "deployment_instance" {

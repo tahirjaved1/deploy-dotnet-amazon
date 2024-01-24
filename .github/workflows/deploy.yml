@@ -80,151 +80,17 @@ jobs:
       #     docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
       #     echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
-      - name: Setup SonarQube on EC2
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ env.AWS_REGION }} 
+      - name: 'Show SonarQube URL'
         run: |
-          # Output the private key to a file and set the correct permissions
-          terraform -chdir="./Terraform" output -raw private_key > key.pem
-          chmod 600 key.pem
-
-          sonarqube_public_ip_ssh=$(terraform -chdir="./Terraform" output -raw sonarqube_public_ip_ssh)
-
-          # SSH into the EC2 instance and execute commands
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$sonarqube_public_ip_ssh << EOF
-            export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
-            export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
-            export AWS_REGION=$AWS_REGION
-              # Update and install required packages
-              # Install Docker
-              sudo apt update
-              sudo apt install docker.io -y
-
-              # Start and enable Docker service
-              sudo systemctl start docker
-              sudo systemctl enable docker
-
-              # Add the current user to the docker group to run Docker commands without sudo
-              sudo usermod -aG docker \$USER
-              sudo chown \$USER:docker /var/run/docker.sock
-
-              # Install Docker Compose
-              sudo apt install docker-compose -y
-
-              # Save the Docker Compose content to a file
-              echo "version: '3'
-
-              services:
-                sonarqube:
-                  image: sonarqube:latest
-                  ports:
-                    - "9000:9000"
-                  networks:
-                    - sonar-network
-                  environment:
-                    - SONARQUBE_JDBC_URL=jdbc:postgresql://sonarqube-db:5432/sonarqube
-                    - SONARQUBE_JDBC_USERNAME=sonaruser
-                    - SONARQUBE_JDBC_PASSWORD=yourpassword
-                  depends_on:
-                    - sonarqube-db
-
-              sonarqube-db:
-                image: postgres:latest
-                networks:
-                  - sonar-network
-                environment:
-                  - POSTGRES_USER=sonaruser
-                  - POSTGRES_PASSWORD=yourpassword
-
-              networks:
-                sonar-network:
-                  driver: bridge > docker-compose.yml
-
-              # Run Docker Compose
-              sudo docker-compose up -d
-
-              # Open port 9000 in the firewall
-              sudo ufw allow 9000/tcp
-
-              # Display Docker version and running containers
-              sudo docker version
-              sudo docker ps -a
-            EOF
           sonarqube_public_ip=$(terraform -chdir="./Terraform" output -raw sonarqube_public_ip)
           echo $sonarqube_public_ip
         shell: /usr/bin/bash -e {0}
 
-      - name: 'Setup Nexus Artifactory on EC2 Instance'
+      - name: 'ShowNexus Artifactory URL'
         run: |
-          terraform -chdir="./Terraform" output -raw private_key > key.pem
-          chmod 600 key.pem
-
-          nexus_public_ip_ssh=$(terraform -chdir="./Terraform" output -raw nexus_public_ip_ssh)
-
-          # SSH into the EC2 instance and execute commands
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$nexus_public_ip_ssh << EOF 
-            # Install Docker
-            sudo apt update
-            sudo apt install docker.io -y
-
-            # Start and enable Docker service
-            sudo systemctl start docker
-            sudo systemctl enable docker
-
-            # Add the current user to the docker group to run Docker commands without sudo
-            sudo usermod -aG docker $USER
-            sudo chown $USER:docker /var/run/docker.sock
-
-            # Install Docker Compose
-            sudo apt install docker-compose -y
-
-            # Create a Docker Compose file for Nexus
-            echo "version: '3'
-
-            services:
-              nexus:
-                image: sonatype/nexus3:latest
-                ports:
-                  - \"8081:8081\"
-                networks:
-                  - nexus-network
-                volumes:
-                  - ./nexus-data:/nexus-data
-                restart: always  # Ensure the container restarts automatically
-                environment:
-                  - MAX_HEAP=2048m  # Set maximum heap size
-                command: bash -c \"export MAX_HEAP=\$MAX_HEAP && /opt/sonatype/start-nexus-repository-manager.sh\"
-                ulimits:
-                  memlock:
-                    soft: -1
-                    hard: -1
-                mem_limit: 4096m  # Set the container memory limit to 4096 MB
-
-            networks:
-              nexus-network:
-                driver: bridge" > docker-compose.yml
-
-            # Create a volume for Nexus data
-            mkdir -p nexus-data
-
-            # Set proper permissions for the Nexus data directory
-            sudo chown -R 200:200 nexus-data
-
-            # Run Docker Compose to start Nexus
-            sudo docker-compose up -d
-
-            # Open port 8081 in the firewall
-            sudo ufw allow 8081/tcp
-
-            # Display Docker version and running containers
-            sudo docker version
-            sudo docker ps -a
-          EOF
           nexus_public_ip=$(terraform -chdir="./Terraform" output -raw nexus_public_ip)
           echo $nexus_public_ip
-        shell: /usr/bin/bash -e {0}        
+        shell: /usr/bin/bash -e {0}
 
       - name: 'Deploy .NET Application on EC2 Instance'
         env:
