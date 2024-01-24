@@ -6,3 +6,4 @@ key_name      = "testinstance"  # Replace with your actual key name
 sonarqube_ami = "ami-0014ce3e52359afbd"
 nexus_ami     = "ami-0014ce3e52359afbd"
 deployment_ami= "ami-0014ce3e52359afbd"
+aws_s3 = "testcronjob"

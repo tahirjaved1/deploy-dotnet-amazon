@@ -4,6 +4,13 @@ variable "aws_region" {
   default     = "eu-north-1"
 }
 
+variable "aws_s3" {
+  description = "The AWS region to create resources in."
+  type        = string
+  default     = "testcronjob"
+}
+
+
 variable "vpc_cidr" {
   description = "The CIDR block for the VPC."
   type        = string

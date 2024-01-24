@@ -111,20 +111,13 @@ jobs:
             sudo docker pull $IMAGE
 
             # Run Docker container
-            sudo docker stop myapp || true
-            sudo docker rm myapp || true
             sudo docker run -d --name myapp -p 80:80 $IMAGE
           EOF
         shell: /usr/bin/bash -e {0}
 
-
-      # - name: Terraform Destroy
-      #   if: failure()
-      #   run: terraform destroy -auto-approve ./Terraform
-
       - name: 'Terraform_Destroy'
         id: tfdestroy
-        if: github.ref == 'refs/heads/master' && always()
+        if: always()
         uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version: 1.4.6
