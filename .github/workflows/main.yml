@@ -29,15 +29,42 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}          
 
-      - name: Terraform Init
-        run: terraform init ./Terraform
+      # - name: Terraform Init
+      #   run: terraform init ./Terraform
 
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan ./Terraform
+      - name: 'Terraform_Init'
+        id: tfinit
+        if: github.ref == 'refs/heads/master'
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: 1.4.6
+          tf_actions_subcommand: 'init'
+          tf_actions_working_dir: "./Terraform"
 
-      - name: Terraform Apply
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: terraform apply -auto-approve ./Terraform 
+      - name: 'Terraform_Plan'
+        id: tfplan
+        if: github.ref == 'refs/heads/master'
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: 1.4.6
+          tf_actions_subcommand: 'plan'
+          tf_actions_working_dir: "./Terraform"
+
+      - name: 'Terraform_Apply'
+        id: tfapply
+        if: github.ref == 'refs/heads/master'
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: 1.4.6
+          tf_actions_subcommand: 'apply'
+          tf_actions_working_dir: "./Terraform"            
+
+      # - name: Terraform Plan
+      #   run: terraform plan -out=tfplan ./Terraform
+
+      # - name: Terraform Apply
+      #   if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      #   run: terraform apply -auto-approve ./Terraform 
 
       # - name: Set Terraform Outputs to Env Vars
       #   id: set-env
