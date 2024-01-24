@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
 
 env:
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  ECR_REPOSITORY: deployapplication
+  AWS_REGION: eu-north-1  # Change to your desired AWS region
+  ECR_REPOSITORY: deployapplication  # Replace with your ECR repository name
 
 jobs:
   build_and_push:
@@ -57,16 +57,28 @@ jobs:
           tf_actions_working_dir: "./Terraform"
 
       - name: Login to Amazon ECR
-        id: login_ecr
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, Tag, and Push Docker Image to Amazon ECR
+      - name: Build, tag, and push image to Amazon ECR
         run: |
           IMAGE_TAG=$GITHUB_SHA
-          ECR_REGISTRY=${{ steps.login_ecr.outputs.registry }}
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f BookManager/Dockerfile BookManager/
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV         
+
+      # - name: Login to Amazon ECR
+      #   id: login_ecr
+      #   uses: aws-actions/amazon-ecr-login@v1
+
+      # - name: Build, Tag, and Push Docker Image to Amazon ECR
+      #   run: |
+      #     IMAGE_TAG=$GITHUB_SHA
+      #     ECR_REGISTRY=${{ steps.login_ecr.outputs.registry }}
+      #     docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f BookManager/Dockerfile BookManager/
+      #     docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      #     echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
       - name: Setup SonarQube on EC2
         env:
