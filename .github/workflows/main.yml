@@ -57,7 +57,7 @@ jobs:
         with:
           tf_actions_version: 1.4.6
           tf_actions_subcommand: 'apply'
-          tf_actions_working_dir: "./Terraform"            
+          tf_actions_working_dir: "./Terraform"
 
       # - name: Terraform Plan
       #   run: terraform plan -out=tfplan ./Terraform
@@ -150,6 +150,15 @@ jobs:
       #   run: |
       #     ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@your-ec2-instance-ip 'sudo docker run -d --name cddemo -p 80:3000 your-dockerhub-username/cddemo:latest'      
 
-      - name: Terraform Destroy
-        if: always()
-        run: terraform destroy -auto-approve ./Terraform
+      # - name: Terraform Destroy
+      #   if: always()
+      #   run: terraform destroy -auto-approve ./Terraform
+
+      - name: 'Terraform_Destroy'
+        id: tfdestroy
+        if: github.ref == 'refs/heads/master' && always()
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: 1.4.6
+          tf_actions_subcommand: 'destroy'
+          tf_actions_working_dir: "./Terraform"                  
