@@ -77,11 +77,17 @@ jobs:
       #     echo "EOF" >> $GITHUB_ENV
       #     # echo "PRIVATE_KEY=${PRIVATE_KEY}" >> $GITHUB_ENV
 
+      # - name: 'Set vars'
+      #   id: vars
+      #   run: |
+      #     printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> "$GITHUB_OUTPUT"
+      #     printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) >> "$GITHUB_OUTPUT"
+
       - name: 'Set vars'
         id: vars
         run: |
-          printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> "$GITHUB_OUTPUT"
-          printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) >> "$GITHUB_OUTPUT"
+          printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> $GITHUB_ENV
+          printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) >> $GITHUB_ENV
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -101,10 +107,8 @@ jobs:
 
       - name: Set permissions for private key
         run: |
-          echo "$PRIVATE_KEY" > key.pem
+          echo "${{ steps.vars.outputs.PRIVATE_KEY }}" > key.pem
           chmod 600 key.pem
-        env:
-          PRIVATE_KEY: ${{ steps.set-env.outputs.PRIVATE_KEY }}
 
       - name: Deploy to EC2
         run: |
@@ -114,9 +118,9 @@ jobs:
       - name: SSH and Execute Commands
         uses: appleboy/ssh-action@master
         with:
-          host: ${{steps.vars.outputs.EC2_IP}}
+          host: ${{ steps.vars.outputs.EC2_IP }}
           username: ubuntu
-          key: ${{steps.vars.outputs.PRIVATE_KEY}}
+          key: ${{ env.SSH_KEY }}
           script: |
             # ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@ec2-18-206-169-89.compute-1.amazonaws.com
             # Login to Amazon ECR to enable pulling Docker images
