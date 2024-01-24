@@ -53,6 +53,11 @@ output "nexus_public_ip" {
   description = "Public IP URL for Nexus instance"
 }
 
+output "nexus_public_ip_ssh" {
+  value = aws_instance.nexus_instance.public_ip
+  description = "Public IP for Nexus instance"
+}
+
 output "deployment_instance_public_ip" {
   value = aws_instance.deployment_instance.public_ip
   description = "Public IP for Deployment instance"
