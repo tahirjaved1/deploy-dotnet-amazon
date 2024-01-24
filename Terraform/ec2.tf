@@ -27,6 +27,20 @@ resource "aws_security_group" "allow_ssh" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+    # Allow Application Port
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+    # Allow Mongo Port
+    ingress {
+    from_port   = 27017
+    to_port     = 27017
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
   # Allow all outbound traffic
   egress {

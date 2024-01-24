@@ -123,8 +123,14 @@ jobs:
             # Pull the Docker image
             sudo docker pull $IMAGE
 
-            # Run Docker container
-            sudo docker run -d --name myapp -p 80:80 $IMAGE
+            # Pull MongoDB Docker image
+            sudo docker pull mongo
+
+            # Run MongoDB container
+            sudo docker run -d --name mongodb -p 27017:27017 mongo
+
+            # Run Docker container for .NET application
+            sudo docker run -d --name myapp -p 8080:80 -e MONGODBCONFIG:CONNECTIONSTRING='mongodb://mongodb:27017' -e ASPNETCORE_ENVIRONMENT=Development $IMAGE
           EOF
           deployment_instance_public_ip=$(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip)
           echo $deployment_instance_public_ip
