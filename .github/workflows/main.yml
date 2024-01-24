@@ -27,10 +27,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}          
-
-      # - name: Terraform Init
-      #   run: terraform init ./Terraform
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: 'Terraform_Init'
         id: tfinit
@@ -59,37 +56,39 @@ jobs:
           tf_actions_subcommand: 'apply'
           tf_actions_working_dir: "./Terraform"
 
-      # - name: Terraform Plan
-      #   run: terraform plan -out=tfplan ./Terraform
-
-      # - name: Terraform Apply
-      #   if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-      #   run: terraform apply -auto-approve ./Terraform 
-
-      # - name: Set Terraform Outputs to Env Vars
-      #   id: set-env
-      #   run: |
-      #     EC2_IP=$(terraform output -raw deployment_instance_public_ip | tr -d '\n')
-      #     PRIVATE_KEY=$(terraform output -raw private_key | tr -d '\n')
-      #     echo "EC2_IP=${EC2_IP}" >> $GITHUB_ENV
-      #     echo "PRIVATE_KEY<<EOF" >> $GITHUB_ENV
-      #     echo "${PRIVATE_KEY}" >> $GITHUB_ENV
-      #     echo "EOF" >> $GITHUB_ENV
-      #     # echo "PRIVATE_KEY=${PRIVATE_KEY}" >> $GITHUB_ENV
-
       # - name: 'Set vars'
       #   id: vars
       #   run: |
       #     printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> "$GITHUB_OUTPUT"
       #     printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) >> "$GITHUB_OUTPUT"
 
-      - name: 'Set vars'
+      - name: 'Set vars for private key and SSH into EC2 instance'
         id: vars
         run: |
           printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> $GITHUB_ENV
           printf "sonarqube_public_ip=%s\n" $(terraform -chdir="./Terraform" output -raw sonarqube_public_ip) >> $GITHUB_ENV
           printf "nexus_public_ip=%s\n" $(terraform -chdir="./Terraform" output -raw nexus_public_ip) >> $GITHUB_ENV
           printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) >> $GITHUB_ENV
+          # Output the private key to a file and set the correct permissions
+          printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) > key.pem
+          chmod 600 key.pem
+
+          # SSH using the key file
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${{ steps.vars.outputs.EC2_IP }}
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+      
+          # Ensure Docker is installed and running on the EC2 instance
+          sudo apt-get update -y
+          sudo apt-get install -y docker.io
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          sudo usermod -aG docker $USER
+    
+          # Pull the latest Docker image and run it
+          docker pull ${{ env.image }}  # Pull the Docker image specified in the build-and-push job
+          docker stop myapp || true  # Stop the existing container if it's running
+          docker rm myapp || true  # Remove the container to allow a fresh start
+          docker run -d --name myapp -p 80:80 ${{ env.image }}  # Run the new container          
 
       - name: Login to Amazon ECR
         id: login-ecr
@@ -107,44 +106,35 @@ jobs:
       #   if: failure()
       #   run: terraform destroy -auto-approve ./Terraform
 
-      - name: Set permissions for private key
-        run: |
-          printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) > key.pem
-          chmod 600 key.pem
+      # - name: Set permissions for private key
+      #   run: |
+      #     printf "PRIVATE_KEY1=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) > key.pem
+      #     chmod 600 key.pem
+      #     PRIVATE_KEY_CONTENT=$(cat key.pem | tee /dev/tty)
 
-      - name: Deploy to EC2
-        run: |
-          KEY_CONTENT=$(cat key.pem)
-          echo "SSH_KEY=${KEY_CONTENT}" >> $GITHUB_ENV
-
-      - name: Transform IP Address
-        run: |
-          TRANSFORMED_IP=$(echo "${{ steps.vars.outputs.EC2_IP }}" | sed 's/\./-/g')
-          echo "TRANSFORMED_IP=$TRANSFORMED_IP" >> $GITHUB_ENV
-
-      - name: SSH and Execute Commands
-        uses: appleboy/ssh-action@master
-        with:
-          host: ec2-${{ env.TRANSFORMED_IP }}.eu-north-1.compute.amazonaws.com
-          username: ubuntu
-          key: ${{ env.SSH_KEY }}
-          script: |
-            # ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@ec2-18-206-169-89.compute-1.amazonaws.com
-            # Login to Amazon ECR to enable pulling Docker images
-            aws ecr get-login-password --region ${{ env.AWS_REGION }} | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+      # - name: SSH and Execute Commands
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: "${{ steps.vars.outputs.EC2_IP }}"
+      #     username: ubuntu
+      #     key: "${{ env.PRIVATE_KEY_CONTENT }}"
+      #     script: |
+      #       # ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@ec2-18-206-169-89.compute-1.amazonaws.com
+      #       # Login to Amazon ECR to enable pulling Docker images
+      #       aws ecr get-login-password --region ${{ env.AWS_REGION }} | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
       
-            # Ensure Docker is installed and running on the EC2 instance
-            sudo apt-get update -y
-            sudo apt-get install -y docker.io
-            sudo systemctl start docker
-            sudo systemctl enable docker
-            sudo usermod -aG docker $USER
+      #       # Ensure Docker is installed and running on the EC2 instance
+      #       sudo apt-get update -y
+      #       sudo apt-get install -y docker.io
+      #       sudo systemctl start docker
+      #       sudo systemctl enable docker
+      #       sudo usermod -aG docker $USER
       
-            # Pull the latest Docker image and run it
-            docker pull ${{ env.image }}  # Pull the Docker image specified in the build-and-push job
-            docker stop myapp || true  # Stop the existing container if it's running
-            docker rm myapp || true  # Remove the container to allow a fresh start
-            docker run -d --name myapp -p 80:80 ${{ env.image }}  # Run the new container        
+      #       # Pull the latest Docker image and run it
+      #       docker pull ${{ env.image }}  # Pull the Docker image specified in the build-and-push job
+      #       docker stop myapp || true  # Stop the existing container if it's running
+      #       docker rm myapp || true  # Remove the container to allow a fresh start
+      #       docker run -d --name myapp -p 80:80 ${{ env.image }}  # Run the new container        
 
       # - name: Set permissions for private key
       #   run: |
