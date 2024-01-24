@@ -81,9 +81,9 @@ jobs:
           printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> $GITHUB_ENV
           printf "sonarqube_public_ip=%s\n" $(terraform -chdir="./Terraform" output -raw sonarqube_public_ip) >> $GITHUB_ENV
           printf "nexus_public_ip=%s\n" $(terraform -chdir="./Terraform" output -raw nexus_public_ip) >> $GITHUB_ENV
-      
+
           # Output the private key to a file and set the correct permissions
-          printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) > key.pem
+          terraform -chdir="./Terraform" output -raw private_key > key.pem
           chmod 600 key.pem
           cat key.pem
       
