@@ -117,10 +117,15 @@ jobs:
           KEY_CONTENT=$(cat key.pem)
           echo "SSH_KEY=${KEY_CONTENT}" >> $GITHUB_ENV
 
+      - name: Transform IP Address
+        run: |
+          TRANSFORMED_IP=$(echo "${{ steps.vars.outputs.EC2_IP }}" | sed 's/\./-/g')
+          echo "TRANSFORMED_IP=$TRANSFORMED_IP" >> $GITHUB_ENV
+
       - name: SSH and Execute Commands
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ steps.vars.outputs.EC2_IP }}
+          host: ec2-${{ env.TRANSFORMED_IP }}.eu-north-1.compute.amazonaws.com
           username: ubuntu
           key: ${{ env.SSH_KEY }}
           script: |
