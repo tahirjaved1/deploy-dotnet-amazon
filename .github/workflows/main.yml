@@ -68,15 +68,7 @@ jobs:
 
       - name: SSH VM
         if: failure()
-        run: ssh -i ${{ secrets.SSH_PRIVATE_KEY }} ubuntu@ec2-18-206-169-89.compute-1.amazonaws.com
-
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.INSTANCE_IP }}
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
+        run: |
             ssh -i ${{ secrets.SSH_PRIVATE_KEY }} ubuntu@ec2-18-206-169-89.compute-1.amazonaws.com
             # Login to Amazon ECR to enable pulling Docker images
             aws ecr get-login-password --region ${{ env.AWS_REGION }} | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
@@ -93,6 +85,31 @@ jobs:
             docker stop myapp || true  # Stop the existing container if it's running
             docker rm myapp || true  # Remove the container to allow a fresh start
             docker run -d --name myapp -p 80:80 ${{ env.image }}  # Run the new container
+        
+
+      # - name: Deploy to EC2
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.INSTANCE_IP }}
+      #     username: ubuntu
+      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     script: |
+      #       ssh -i ${{ secrets.SSH_PRIVATE_KEY }} ubuntu@ec2-18-206-169-89.compute-1.amazonaws.com
+      #       # Login to Amazon ECR to enable pulling Docker images
+      #       aws ecr get-login-password --region ${{ env.AWS_REGION }} | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
+      
+      #       # Ensure Docker is installed and running on the EC2 instance
+      #       sudo apt-get update -y
+      #       sudo apt-get install -y docker.io
+      #       sudo systemctl start docker
+      #       sudo systemctl enable docker
+      #       sudo usermod -aG docker $USER
+      
+      #       # Pull the latest Docker image and run it
+      #       docker pull ${{ env.image }}  # Pull the Docker image specified in the build-and-push job
+      #       docker stop myapp || true  # Stop the existing container if it's running
+      #       docker rm myapp || true  # Remove the container to allow a fresh start
+      #       docker run -d --name myapp -p 80:80 ${{ env.image }}  # Run the new container
 
       # - name: Terraform Destroy
       #   if: always()
