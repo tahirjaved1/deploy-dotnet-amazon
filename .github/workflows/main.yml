@@ -17,50 +17,50 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 0.14.9
+      # - name: Setup Terraform
+      #   uses: hashicorp/setup-terraform@v1
+      #   with:
+      #     terraform_version: 0.14.9
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}          
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v1
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ env.AWS_REGION }}          
 
-      - name: Terraform Init
-        run: terraform init ./Terraform
+      # - name: Terraform Init
+      #   run: terraform init ./Terraform
 
-      - name: Terraform Plan
-        run: terraform plan -out=tfplan ./Terraform
+      # - name: Terraform Plan
+      #   run: terraform plan -out=tfplan ./Terraform
 
-      - name: Terraform Apply
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-        run: terraform apply -auto-approve ./Terraform 
+      # - name: Terraform Apply
+      #   if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      #   run: terraform apply -auto-approve ./Terraform 
 
-      - name: Set Terraform Outputs to Env Vars
-        id: set-env
-        run: |
-          EC2_IP=$(terraform output -raw deployment_instance_public_ip | tr -d '\n')
-          PRIVATE_KEY=$(terraform output -raw private_key | tr -d '\n')
-          echo "EC2_IP=${EC2_IP}" >> $GITHUB_ENV
-          echo "PRIVATE_KEY<<EOF" >> $GITHUB_ENV
-          echo "${PRIVATE_KEY}" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-          # echo "PRIVATE_KEY=${PRIVATE_KEY}" >> $GITHUB_ENV
+      # - name: Set Terraform Outputs to Env Vars
+      #   id: set-env
+      #   run: |
+      #     EC2_IP=$(terraform output -raw deployment_instance_public_ip | tr -d '\n')
+      #     PRIVATE_KEY=$(terraform output -raw private_key | tr -d '\n')
+      #     echo "EC2_IP=${EC2_IP}" >> $GITHUB_ENV
+      #     echo "PRIVATE_KEY<<EOF" >> $GITHUB_ENV
+      #     echo "${PRIVATE_KEY}" >> $GITHUB_ENV
+      #     echo "EOF" >> $GITHUB_ENV
+      #     # echo "PRIVATE_KEY=${PRIVATE_KEY}" >> $GITHUB_ENV
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+      # - name: Login to Amazon ECR
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, tag, and push image to Amazon ECR
-        run: |
-          IMAGE_TAG=$GITHUB_SHA
-          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f BookManager/Dockerfile BookManager/
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+      # - name: Build, tag, and push image to Amazon ECR
+      #   run: |
+      #     IMAGE_TAG=$GITHUB_SHA
+      #     ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+      #     docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f BookManager/Dockerfile BookManager/
+      #     docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+      #     echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
       # - name: Terraform Destroy
       #   if: failure()
@@ -69,9 +69,9 @@ jobs:
       - name: Deploy to EC2
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ env.EC2_IP }}
+          host: ${{ secrets.INSTANCE_IP }}
           username: ubuntu
-          key: ${{ env.PRIVATE_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             # Login to Amazon ECR to enable pulling Docker images
             aws ecr get-login-password --region ${{ env.AWS_REGION }} | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
