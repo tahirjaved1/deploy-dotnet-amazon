@@ -57,12 +57,6 @@ jobs:
           tf_actions_subcommand: 'apply'
           tf_actions_working_dir: "./Terraform"
 
-      # - name: 'Set vars'
-      #   id: vars
-      #   run: |
-      #     printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> "$GITHUB_OUTPUT"
-      #     printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) >> "$GITHUB_OUTPUT"
-
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
@@ -73,26 +67,25 @@ jobs:
           ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f BookManager/Dockerfile BookManager/
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV      
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
-      - name: 'Set vars for private key and SSH into EC2 instance'
+      - name: 'Deployment to EC2 Instance'
         run: |
           # Set environment variables
-          # printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> $GITHUB_ENV
           printf "sonarqube_public_ip=%s\n" $(terraform -chdir="./Terraform" output -raw sonarqube_public_ip) >> $GITHUB_ENV
           printf "nexus_public_ip=%s\n" $(terraform -chdir="./Terraform" output -raw nexus_public_ip) >> $GITHUB_ENV
 
           # Output the private key to a file and set the correct permissions
           terraform -chdir="./Terraform" output -raw private_key > key.pem
           chmod 600 key.pem
-          cat key.pem
 
           EC2_IP=$(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) 
-               
-          # Debug: Print the EC2_IP
-          echo $EC2_IP
+          AWS_REGION=${{ env.AWS_REGION }}
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          IMAGE=${{ env.image }}
+
           # SSH into the EC2 instance and execute commands
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_IP << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@$EC2_IP << EOF
             # Commands to execute on the EC2 instance
             sudo apt-get update -y
             sudo apt-get install -y docker.io
@@ -100,66 +93,26 @@ jobs:
             sudo systemctl enable docker
             sudo usermod -aG docker $USER
 
+            # Install AWS CLI
+            sudo apt-get install -y awscli
+
             # Docker and AWS commands
-            $(aws ecr get-login-password --region ${{ env.AWS_REGION }}) | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
-            docker pull ${{ env.image }}
-            # docker stop myapp || true
-            # docker rm myapp || true
-            docker run -d --name myapp -p 80:80 ${{ env.image }}
+            # Log into Docker registry non-interactively
+            aws_ecr_login=$(aws ecr get-login-password --region $AWS_REGION)
+            echo $aws_ecr_login | sudo docker login --username AWS --password-stdin $ECR_REGISTRY
+
+            # Pull the Docker image
+            sudo docker pull $IMAGE
+
+            # Run Docker container
+            sudo docker stop myapp || true
+            sudo docker rm myapp || true
+            sudo docker run -d --name myapp -p 80:80 $IMAGE
           EOF
         shell: /usr/bin/bash -e {0}       
 
       # - name: Terraform Destroy
       #   if: failure()
-      #   run: terraform destroy -auto-approve ./Terraform
-
-      # - name: Set permissions for private key
-      #   run: |
-      #     printf "PRIVATE_KEY1=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) > key.pem
-      #     chmod 600 key.pem
-      #     PRIVATE_KEY_CONTENT=$(cat key.pem | tee /dev/tty)
-
-      # - name: SSH and Execute Commands
-      #   uses: appleboy/ssh-action@master
-      #   with:
-      #     host: "${{ steps.vars.outputs.EC2_IP }}"
-      #     username: ubuntu
-      #     key: "${{ env.PRIVATE_KEY_CONTENT }}"
-      #     script: |
-      #       # ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@ec2-18-206-169-89.compute-1.amazonaws.com
-      #       # Login to Amazon ECR to enable pulling Docker images
-      #       aws ecr get-login-password --region ${{ env.AWS_REGION }} | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
-      
-      #       # Ensure Docker is installed and running on the EC2 instance
-      #       sudo apt-get update -y
-      #       sudo apt-get install -y docker.io
-      #       sudo systemctl start docker
-      #       sudo systemctl enable docker
-      #       sudo usermod -aG docker $USER
-      
-      #       # Pull the latest Docker image and run it
-      #       docker pull ${{ env.image }}  # Pull the Docker image specified in the build-and-push job
-      #       docker stop myapp || true  # Stop the existing container if it's running
-      #       docker rm myapp || true  # Remove the container to allow a fresh start
-      #       docker run -d --name myapp -p 80:80 ${{ env.image }}  # Run the new container        
-
-      # - name: Set permissions for private key
-      #   run: |
-      #     echo "${{ env.AWS_PRIVATE_KEY }}" > key.pem
-      #     chmod 600 key.pem
-      # - name: Pull Docker image
-      #   run: |
-      #     ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@13.51.196.220 'sudo docker pull 070982173331.dkr.ecr.us-east-1.amazonaws.com/applicationdeploy:e40084f989cb8085bf0b35b110c3064c33a653e6'
-      # - name: Stop running container
-      #   run: |
-      #     ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@100.24.8.251 'sudo docker stop cddemo || true'
-      #     ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@100.24.8.251 'sudo docker rm cddemo || true'
-      # - name: Run new container
-      #   run: |
-      #     ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@your-ec2-instance-ip 'sudo docker run -d --name cddemo -p 80:3000 your-dockerhub-username/cddemo:latest'      
-
-      # - name: Terraform Destroy
-      #   if: always()
       #   run: terraform destroy -auto-approve ./Terraform
 
       - name: 'Terraform_Destroy'
@@ -169,4 +122,4 @@ jobs:
         with:
           tf_actions_version: 1.4.6
           tf_actions_subcommand: 'destroy'
-          tf_actions_working_dir: "./Terraform"                  
+          tf_actions_working_dir: "./Terraform"
