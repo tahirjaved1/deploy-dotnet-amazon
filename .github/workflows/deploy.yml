@@ -1,9 +1,9 @@
-name: Build, Push and Deploy
+name: Build, Push, and Deploy
 
 on:
   push:
     branches:
-      - master
+      - main
   workflow_dispatch:
 
 env:
@@ -11,44 +11,45 @@ env:
   ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
 
 jobs:
-  build-and-push:
+  build_and_push:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v2
 
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
 
-      - name: Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: 'Terraform_Init'
-        id: tfinit
-        if: github.ref == 'refs/heads/master'
+      - name: Initialize Terraform
+        id: tf_init
+        if: github.ref == 'refs/heads/main'
         uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version: 1.4.6
           tf_actions_subcommand: 'init'
           tf_actions_working_dir: "./Terraform"
 
-      - name: 'Terraform_Plan'
-        id: tfplan
-        if: github.ref == 'refs/heads/master'
+      - name: Plan Terraform
+        id: tf_plan
+        if: github.ref == 'refs/heads/main'
         uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version: 1.4.6
           tf_actions_subcommand: 'plan'
           tf_actions_working_dir: "./Terraform"
 
-      - name: 'Terraform_Apply'
-        id: tfapply
-        if: github.ref == 'refs/heads/master'
+      - name: Apply Terraform Changes
+        id: tf_apply
+        if: github.ref == 'refs/heads/main'
         uses: hashicorp/terraform-github-actions@master
         with:
           tf_actions_version: 1.4.6
@@ -56,19 +57,19 @@ jobs:
           tf_actions_working_dir: "./Terraform"
 
       - name: Login to Amazon ECR
-        id: login-ecr
+        id: login_ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build, Tag, and Push Docker Image to Amazon ECR
         run: |
           IMAGE_TAG=$GITHUB_SHA
-          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          ECR_REGISTRY=${{ steps.login_ecr.outputs.registry }}
+          ECR_REPOSITORY=${{ env.ECR_REPOSITORY }} 
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f BookManager/Dockerfile BookManager/
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
-
-      - name: 'Setup SonarQube in EC2'
+      - name: Setup SonarQube on EC2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -144,7 +145,7 @@ jobs:
           echo $sonarqube_public_ip
         shell: /usr/bin/bash -e {0}
 
-      - name: 'Setup Nexus Artifactory in EC2 Instance'
+      - name: 'Setup Nexus Artifactory on EC2 Instance'
         run: |
           terraform -chdir="./Terraform" output -raw private_key > key.pem
           chmod 600 key.pem
@@ -161,7 +162,7 @@ jobs:
           echo $nexus_public_ip
         shell: /usr/bin/bash -e {0}        
 
-      - name: 'Deployment Dotnet Code EC2 Instance'
+      - name: 'Deploy .NET Application on EC2 Instance'
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -177,7 +178,7 @@ jobs:
 
           EC2_IP=$(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) 
           AWS_REGION=${{ env.AWS_REGION }}
-          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          ECR_REGISTRY=${{ steps.login_ecr.outputs.registry }}
           IMAGE_TAG=$GITHUB_SHA
           IMAGE="$ECR_REGISTRY/${{ env.ECR_REPOSITORY }}:$IMAGE_TAG"
 
