@@ -89,6 +89,6 @@ jobs:
             docker rm myapp || true  # Remove the container to allow a fresh start
             docker run -d --name myapp -p 80:80 ${{ env.image }}  # Run the new container
 
-      - name: Terraform Destroy
-        if: always()
-        run: terraform destroy -auto-approve ./Terraform
+      # - name: Terraform Destroy
+      #   if: always()
+      #   run: terraform destroy -auto-approve ./Terraform
