@@ -62,19 +62,31 @@ jobs:
       #     printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> "$GITHUB_OUTPUT"
       #     printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) >> "$GITHUB_OUTPUT"
 
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build, tag, and push image to Amazon ECR
+        run: |
+          IMAGE_TAG=$GITHUB_SHA
+          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f BookManager/Dockerfile BookManager/
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV      
+
       - name: 'Set vars for private key and SSH into EC2 instance'
         id: vars
         run: |
           printf "EC2_IP=%s\n" $(terraform -chdir="./Terraform" output -raw deployment_instance_public_ip) >> $GITHUB_ENV
           printf "sonarqube_public_ip=%s\n" $(terraform -chdir="./Terraform" output -raw sonarqube_public_ip) >> $GITHUB_ENV
           printf "nexus_public_ip=%s\n" $(terraform -chdir="./Terraform" output -raw nexus_public_ip) >> $GITHUB_ENV
-          printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) >> $GITHUB_ENV
+          # printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) >> $GITHUB_ENV
           # Output the private key to a file and set the correct permissions
           printf "PRIVATE_KEY=%s\n" $(terraform -chdir="./Terraform" output -raw private_key) > key.pem
           chmod 600 key.pem
 
           # SSH using the key file
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${{ steps.vars.outputs.EC2_IP }}
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@${{ env.EC2_IP }}
           aws ecr get-login-password --region ${{ env.AWS_REGION }} | sudo docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}
       
           # Ensure Docker is installed and running on the EC2 instance
@@ -89,18 +101,6 @@ jobs:
           docker stop myapp || true  # Stop the existing container if it's running
           docker rm myapp || true  # Remove the container to allow a fresh start
           docker run -d --name myapp -p 80:80 ${{ env.image }}  # Run the new container          
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
-      - name: Build, tag, and push image to Amazon ECR
-        run: |
-          IMAGE_TAG=$GITHUB_SHA
-          ECR_REGISTRY=${{ steps.login-ecr.outputs.registry }}
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f BookManager/Dockerfile BookManager/
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
       # - name: Terraform Destroy
       #   if: failure()
