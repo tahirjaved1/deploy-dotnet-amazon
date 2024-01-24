@@ -1,7 +1,7 @@
 variable "aws_region" {
   description = "The AWS region to create resources in."
   type        = string
-  default     = "us-east-1"
+  default     = "eu-north-1"
 }
 
 variable "vpc_cidr" {
@@ -31,17 +31,17 @@ variable "key_name" {
 variable "sonarqube_ami" {
   description = "The AMI ID for the SonarQube EC2 instance."
   type        = string
-  default     = "ami-0c7217cdde317cfec"
+  default     = "ami-0014ce3e52359afbd"
 }
 
 variable "nexus_ami" {
   description = "The AMI ID for the Nexus EC2 instance."
   type        = string
-  default     = "ami-0c7217cdde317cfec"
+  default     = "ami-0014ce3e52359afbd"
 }
 
 variable "deployment_ami" {
   description = "The AMI ID for the Deployment EC2 instance."
   type        = string
-  default     = "ami-0c7217cdde317cfec"
+  default     = "ami-0014ce3e52359afbd"
 }
